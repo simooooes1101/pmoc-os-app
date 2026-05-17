@@ -1,0 +1,147 @@
+.pmoc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pmoc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.pmoc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pmoc-card.border-danger {
+  border-color: var(--danger);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.pmoc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pmoc-title-group h4 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.text-muted { color: var(--text-muted); }
+
+.pmoc-details p {
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.pmoc-schedules {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.pmoc-schedules h5 {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.schedule-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.schedule-item.delayed {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid var(--danger);
+}
+
+.ml-auto {
+  margin-left: auto;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.mt-auto {
+  margin-top: auto;
+}
+
+/* Responsável Técnico Card */
+.rt-card {
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  border: 1px solid var(--accent-primary);
+}
+
+.rt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.75rem;
+}
+
+.rt-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--accent-primary);
+}
+
+.badge-rt {
+  background-color: var(--accent-primary);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.rt-body {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.rt-avatar {
+  width: 64px;
+  height: 64px;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.rt-info h4 {
+  margin-bottom: 0.25rem;
+}
+
+.rt-info p {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}

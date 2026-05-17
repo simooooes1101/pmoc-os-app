@@ -1,0 +1,249 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tech-login-wrapper {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem;
+  gap: 2rem;
+}
+
+.tech-login-header {
+  text-align: center;
+  padding-top: 1rem;
+}
+
+.tech-logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.2));
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: var(--accent-primary);
+}
+
+.tech-login-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(90deg, #fff, #a5b4fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tech-login-header p {
+  color: var(--text-muted);
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+/* Technician Selection */
+.tech-select-step {
+  width: 100%;
+  max-width: 400px;
+}
+
+.tech-select-step h2 {
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.tech-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tech-select-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.tech-select-card:hover, .tech-select-card:active {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: scale(0.99);
+}
+
+.tech-select-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.tech-select-avatar.large {
+  width: 72px;
+  height: 72px;
+  font-size: 1.5rem;
+  margin: 0 auto;
+}
+
+.tech-select-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tech-select-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.tech-select-role {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tech-chevron {
+  color: var(--text-muted);
+}
+
+/* PIN Step */
+.tech-pin-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.tech-selected-info {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tech-selected-info h2 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.tech-selected-info p {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-tertiary);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.pin-dot.filled {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  transform: scale(1.1);
+}
+
+.pin-error {
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin: 0;
+  text-align: center;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.pin-key {
+  aspect-ratio: 1.3;
+  border: 1px solid var(--bg-tertiary);
+  background: var(--glass-bg);
+  border-radius: 14px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pin-key:not(.empty):active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--accent-primary);
+  transform: scale(0.95);
+}
+
+.pin-key.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.pin-key.delete {
+  color: var(--text-secondary);
+}
+
+.tech-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.5rem 1rem;
+}
+
+.pin-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  opacity: 0.6;
+}
