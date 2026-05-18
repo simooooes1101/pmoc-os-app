@@ -35,6 +35,10 @@ const CLIENTE_MAP = {
   created_at: 'createdAt'
 };
 
+const TECNICO_MAP = {
+  created_at: 'createdAt'
+};
+
 const EQUIPAMENTO_MAP = {
   cliente_id: 'clienteId',
   capacidade_btu: 'capacidadeBTU',
@@ -565,6 +569,59 @@ export function AppProvider({ children }) {
     showNotification('Cliente excluído com sucesso!');
   }, [showNotification]);
 
+  // ── OPERAÇÕES DE TÉCNICOS ──────────────────────────────────────
+  const criarTecnico = useCallback(async (dados) => {
+    const nextId = `TEC${String(tecnicos.length + 1).padStart(3, '0')}`;
+    const tecnico = {
+      ...dados,
+      id: dados.id || nextId,
+      status: dados.status || 'Ativo',
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('tecnicos').insert(mapToBackend(tecnico, TECNICO_MAP));
+      if (error) {
+        showNotification(`Erro ao criar técnico: ${error.message}`, 'error');
+        return null;
+      }
+      setTecnicos((prev) => [...prev, tecnico]);
+    } else {
+      setTecnicos((prev) => [...prev, tecnico]);
+    }
+
+    showNotification(`Técnico "${tecnico.nome}" cadastrado!`);
+    return tecnico;
+  }, [tecnicos, showNotification]);
+
+  const atualizarTecnico = useCallback(async (id, dados) => {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('tecnicos').update(mapToBackend(dados, TECNICO_MAP)).eq('id', id);
+      if (error) {
+        showNotification(`Erro ao atualizar técnico: ${error.message}`, 'error');
+        return;
+      }
+      setTecnicos((prev) => prev.map((t) => (t.id === id ? { ...t, ...dados } : t)));
+    } else {
+      setTecnicos((prev) => prev.map((t) => (t.id === id ? { ...t, ...dados } : t)));
+    }
+    showNotification('Técnico atualizado com sucesso!');
+  }, [showNotification]);
+
+  const excluirTecnico = useCallback(async (id) => {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('tecnicos').delete().eq('id', id);
+      if (error) {
+        showNotification(`Erro ao excluir técnico: ${error.message}`, 'error');
+        return;
+      }
+      setTecnicos((prev) => prev.filter((t) => t.id !== id));
+    } else {
+      setTecnicos((prev) => prev.filter((t) => t.id !== id));
+    }
+    showNotification('Técnico excluído com sucesso!');
+  }, [showNotification]);
+
   // ── OPERAÇÕES DE EQUIPAMENTOS ──────────────────────────────────
   const criarEquipamento = useCallback(async (dados) => {
     const eq = {
@@ -785,6 +842,9 @@ export function AppProvider({ children }) {
         criarCliente,
         atualizarCliente,
         excluirCliente,
+        criarTecnico,
+        atualizarTecnico,
+        excluirTecnico,
         criarEquipamento,
         atualizarEquipamento,
         excluirEquipamento,

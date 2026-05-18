@@ -137,7 +137,7 @@ export function OSList() {
                 <label className="form-label">Técnico Atribuído</label>
                 <select className="form-select" value={novaOSForm.tecnicoId} onChange={e => setNovaOSForm({...novaOSForm, tecnicoId: e.target.value})}>
                   <option value="">Aguardando Atribuição</option>
-                  {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                  {tecnicos.filter(t => t.status === 'Ativo').map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -259,7 +259,7 @@ export function OSList() {
                   onChange={e => setEditingOS({...editingOS, tecnicoId: e.target.value})}
                 >
                   <option value="">Aguardando Atribuição</option>
-                  {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                  {tecnicos.filter(t => t.status === 'Ativo' || t.id === editingOS.tecnicoId).map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
                 </select>
               </div>
               <div className="form-group">

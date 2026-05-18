@@ -11,6 +11,7 @@ import { PMOCList } from './pages/PMOCList';
 import { Agenda } from './pages/Agenda';
 import { Clientes } from './pages/Clientes';
 import { Equipamentos } from './pages/Equipamentos';
+import { Tecnicos } from './pages/Tecnicos';
 import { Configuracoes } from './pages/Configuracoes';
 import { Login } from './pages/Login';
 
@@ -74,7 +75,7 @@ function App() {
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="equipamentos" element={<Equipamentos />} />
                 <Route path="config" element={<Configuracoes />} />
-                <Route path="tecnicos" element={<Placeholder title="Técnicos" />} />
+                <Route path="tecnicos" element={<Tecnicos />} />
               </Route>
 
               {/* === Technician Mobile Routes === */}
