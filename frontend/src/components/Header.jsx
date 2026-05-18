@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, User, AlertTriangle, Clock, CalendarX, LogOut } from 'lucide-react';
+import { Bell, Search, User, AlertTriangle, Clock, CalendarX, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import './Header.css';
 
-export function Header() {
+export function Header({ toggleSidebar }) {
   const { osSLACritico, osAtrasadas, clientesSemPMOC, notification } = useApp();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +31,10 @@ export function Header() {
 
   return (
     <header className="header">
+      <button className="mobile-toggle-btn" onClick={toggleSidebar} aria-label="Menu Principal">
+        <Menu size={24} />
+      </button>
+
       <div className="search-bar">
         <Search size={20} className="search-icon" />
         <input 

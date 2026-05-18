@@ -8,11 +8,12 @@ import {
   CalendarClock, 
   FileCheck,
   Settings,
-  HardHat
+  HardHat,
+  X
 } from 'lucide-react';
 import './Sidebar.css';
 
-export function Sidebar() {
+export function Sidebar({ closeSidebar }) {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: ClipboardList, label: 'Ordens de Serviço', path: '/os' },
@@ -28,6 +29,9 @@ export function Sidebar() {
       <div className="sidebar-header">
         <div className="logo-icon">❄️</div>
         <h2>ClimaTech</h2>
+        <button className="sidebar-close-btn" onClick={closeSidebar} aria-label="Fechar Menu">
+          <X size={20} />
+        </button>
       </div>
       
       <nav className="sidebar-nav">
@@ -36,6 +40,7 @@ export function Sidebar() {
             key={item.path} 
             to={item.path} 
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeSidebar}
           >
             <item.icon size={20} />
             <span>{item.label}</span>
@@ -47,6 +52,7 @@ export function Sidebar() {
         <NavLink 
           to="/config" 
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          onClick={closeSidebar}
         >
           <Settings size={20} />
           <span>Configurações</span>

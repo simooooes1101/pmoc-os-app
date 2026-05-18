@@ -69,3 +69,104 @@
   padding-top: 1.5rem;
   border-top: 1px solid var(--bg-tertiary);
 }
+
+/* ====================================================================
+   RESPONSIVIDADE E MENU HAMBÚRGUER MOBILE
+   ==================================================================== */
+
+/* Botões do Menu Mobile (escondidos por padrão no desktop) */
+.mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.mobile-toggle-btn:hover {
+  background-color: var(--bg-secondary);
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  margin-left: auto;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sidebar-close-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Overlay desfocado para fechar ao clicar fora no celular */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 999;
+  animation: fadeIn var(--transition-fast) forwards;
+}
+
+@media (max-width: 768px) {
+  /* Exibe o botão de hambúrguer no Header */
+  .mobile-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Exibe o botão de fechar (X) dentro da Sidebar */
+  .sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Modifica a Sidebar para se comportar como um drawer lateral deslizante */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    box-shadow: none;
+  }
+
+  /* Quando a classe active estiver setada no container principal */
+  .sidebar-mobile-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Ajustes no cabeçalho e ocultação da barra de buscas para não esmagar no celular */
+  .header {
+    padding: 0 1rem !important;
+  }
+
+  .search-bar {
+    display: none !important;
+  }
+
+  /* Ajustes no espaçamento interno de páginas no mobile */
+  .page-content {
+    padding: 1rem !important;
+  }
+}
