@@ -21,8 +21,7 @@ export function TechAuthProvider({ children }) {
   }, [techSession]);
 
   const loginTech = (tecnico, pin) => {
-    // Default PIN for all technicians in MVP: 1234
-    const VALID_PIN = '1234';
+    const VALID_PIN = tecnico?.pin || '1234';
     if (pin !== VALID_PIN) return { success: false, message: 'PIN incorreto' };
     setTechSession({ id: tecnico.id, nome: tecnico.nome, especialidade: tecnico.especialidade });
     return { success: true };

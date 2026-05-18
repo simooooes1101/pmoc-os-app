@@ -3,9 +3,10 @@ import {
   Building2, Users, FileCheck, ClipboardList, CheckSquare,
   HardHat, Calendar, MessageCircle, FileText, DollarSign,
   ShieldCheck, Plug, LayoutDashboard, Archive, Settings,
-  Save, Eye, EyeOff, Plus, Trash2
+  Save, Eye, EyeOff, Plus, Trash2, Search, Edit2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useApp } from '../contexts/AppContext';
 import './Configuracoes.css';
 
 const TABS = [
@@ -83,83 +84,287 @@ function TabEmpresa({ prefs, onSave }) {
 }
 
 function TabUsuarios({ prefs, onSave }) {
-  const { users, addUser, updatePassword, currentUser } = useAuth();
-  const [newUser, setNewUser] = useState({ username: '', password: '', name: '', role: 'technician' });
-  const [changePwd, setChangePwd] = useState({ userId: '', newPwd: '', confirm: '' });
-  const [showPwd, setShowPwd] = useState(false);
+  const { users, addUser, saveUser, updatePassword, currentUser } = useAuth();
+  const { tecnicos } = useApp();
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // formMode: 'view' | 'edit' | 'new'
+  const [formMode, setFormMode] = useState('view');
   const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState('success');
 
-  const roles = { admin: 'Administrador', manager: 'Gestor', technician: 'Técnico', viewer: 'Visualizador' };
-
-  const handleAddUser = (e) => {
-    e.preventDefault();
-    if (!newUser.username || !newUser.password) return;
-    addUser(newUser);
-    setNewUser({ username: '', password: '', name: '', role: 'technician' });
-    setMsg('Usuário criado com sucesso!');
-    setTimeout(() => setMsg(''), 3000);
+  const initialFormState = {
+    id: '',
+    username: '',
+    name: '',
+    password: '',
+    role: 'technician',
+    status: 'Ativo',
+    tecnicoId: ''
   };
 
-  const handleChangePwd = (e) => {
-    e.preventDefault();
-    if (changePwd.newPwd !== changePwd.confirm) { setMsg('As senhas não conferem!'); return; }
-    if (!changePwd.newPwd || changePwd.newPwd.length < 4) { setMsg('A senha deve ter pelo menos 4 caracteres.'); return; }
-    updatePassword(changePwd.userId || currentUser.id, changePwd.newPwd);
-    setChangePwd({ userId: '', newPwd: '', confirm: '' });
-    setMsg('Senha atualizada com sucesso!');
-    setTimeout(() => setMsg(''), 3000);
+  const [formData, setFormData] = useState(initialFormState);
+
+  // Set the first user as selected on load
+  useEffect(() => {
+    if (users.length > 0 && !formData.id && formMode === 'view') {
+      setFormData({ ...initialFormState, ...users[0], password: '' });
+    }
+  }, [users, formData.id, formMode]);
+
+  const roles = { 
+    admin: 'Administrador', 
+    manager: 'Gestor', 
+    technician: 'Técnico', 
+    viewer: 'Visualizador' 
   };
+
+  const filteredUsers = users.filter(u => 
+    (u.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (roles[u.role] || u.role || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleRowClick = (user) => {
+    setFormMode('view');
+    setFormData({ ...initialFormState, ...user, password: '' });
+  };
+
+  const handleNovo = () => {
+    setFormMode('new');
+    setFormData(initialFormState);
+  };
+
+  const handleEditar = () => {
+    if (!formData.id) return;
+    setFormMode('edit');
+  };
+
+  const handleSalvar = async (e) => {
+    e.preventDefault();
+    if (formMode === 'new' && !formData.password) {
+      setMsg('Senha inicial é obrigatória para novos usuários!');
+      setMsgType('error');
+      setTimeout(() => setMsg(''), 4000);
+      return;
+    }
+
+    try {
+      if (formMode === 'new') {
+        const res = await addUser(formData);
+        if (res && res.success === false) {
+          setMsg(res.message || 'Erro ao criar usuário');
+          setMsgType('error');
+        } else {
+          setMsg('Usuário criado com sucesso!');
+          setMsgType('success');
+          setFormMode('view');
+        }
+      } else if (formMode === 'edit') {
+        // Se a senha foi preenchida, atualiza também a senha!
+        if (formData.password) {
+          if (formData.password.length < 4) {
+            setMsg('A senha deve conter ao menos 4 caracteres!');
+            setMsgType('error');
+            setTimeout(() => setMsg(''), 4000);
+            return;
+          }
+          await updatePassword(formData.id, formData.password);
+        }
+
+        const res = await saveUser(formData.id, formData);
+        if (res && res.success === false) {
+          setMsg(res.message || 'Erro ao atualizar usuário');
+          setMsgType('error');
+        } else {
+          setMsg('Usuário atualizado com sucesso!');
+          setMsgType('success');
+          setFormMode('view');
+        }
+      }
+      setTimeout(() => setMsg(''), 4000);
+    } catch (err) {
+      console.error("Erro ao salvar usuário:", err);
+      setMsg('Erro ao realizar a operação.');
+      setMsgType('error');
+      setTimeout(() => setMsg(''), 4000);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const isReadOnly = formMode === 'view';
 
   return (
-    <div className="tab-content">
-      <h2>Usuários e Permissões</h2>
-      <p className="tab-desc">Gerencie quem tem acesso ao sistema e com quais privilégios.</p>
-      {msg && <div className="config-msg success">{msg}</div>}
+    <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2>Usuários e Permissões</h2>
+          <p className="tab-desc">Gerencie quem tem acesso ao sistema, perfis de privilégios e auditoria.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={handleNovo}>
+            <Plus size={16} /> Novo Usuário
+          </button>
+          <button className="btn btn-secondary" onClick={handleEditar} disabled={!formData.id || formMode !== 'view'}>
+            <Edit2 size={16} /> Editar
+          </button>
+        </div>
+      </div>
 
-      <SettingsSection title="Usuários do Sistema">
-        <table className="data-table">
-          <thead><tr><th>Usuário</th><th>Nome</th><th>Perfil</th></tr></thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id} className={u.id === currentUser?.id ? 'selected-row' : ''}>
-                <td className="font-mono">{u.username}</td>
-                <td>{u.name}</td>
-                <td><span className={`badge ${u.role === 'admin' ? 'Concluída' : 'info'}`}>{roles[u.role] || u.role}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </SettingsSection>
+      {msg && (
+        <div className={`config-msg ${msgType === 'error' ? 'error' : 'success'}`} style={{
+          padding: '0.75rem 1rem',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: msgType === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+          color: msgType === 'error' ? 'var(--danger)' : 'var(--success)',
+          border: `1px solid ${msgType === 'error' ? 'var(--danger)' : 'var(--success)'}`,
+          fontWeight: 600
+        }}>
+          {msg}
+        </div>
+      )}
 
-      <SettingsSection title="Adicionar Novo Usuário">
-        <form onSubmit={handleAddUser} className="settings-form-grid">
-          <div className="form-group"><label className="form-label">Login</label><input className="form-input" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} required /></div>
-          <div className="form-group"><label className="form-label">Nome Completo</label><input className="form-input" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} required /></div>
-          <div className="form-group"><label className="form-label">Senha Inicial</label><input className="form-input" type="password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} required /></div>
-          <div className="form-group"><label className="form-label">Perfil</label>
-            <select className="form-select" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
-              {Object.entries(roles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div className="form-group col-span-4 flex-end"><button type="submit" className="btn btn-primary"><Plus size={16} /> Criar Usuário</button></div>
-        </form>
-      </SettingsSection>
+      {/* Formulário de Cadastro/Edição */}
+      <SettingsSection title={formMode === 'new' ? 'Novo Usuário' : formMode === 'edit' ? 'Editando Usuário' : 'Dados do Usuário'}>
+        <form onSubmit={handleSalvar} className="tecnico-form">
+          <div className="form-grid">
+            <div className="form-group col-span-2">
+              <label className="form-label">Nome Completo</label>
+              <input type="text" className="form-input" name="name" value={formData.name} onChange={handleChange} readOnly={isReadOnly} required />
+            </div>
+            
+            <div className="form-group col-span-2">
+              <label className="form-label">Login / E-mail</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                name="username" 
+                value={formData.username} 
+                onChange={handleChange} 
+                readOnly={isReadOnly || formMode === 'edit'} 
+                placeholder="Ex: joao@climatiza.com.br"
+                required 
+              />
+            </div>
 
-      <SettingsSection title="Alterar Minha Senha">
-        <form onSubmit={handleChangePwd} className="settings-form-grid">
-          <div className="form-group col-span-2">
-            <label className="form-label">Nova Senha</label>
-            <div className="input-with-icon">
-              <input className="form-input" type={showPwd ? 'text' : 'password'} value={changePwd.newPwd} onChange={e => setChangePwd({ ...changePwd, newPwd: e.target.value })} style={{ paddingRight: '3rem' }} />
-              <button type="button" className="icon-btn" style={{ position: 'absolute', right: '0.5rem' }} onClick={() => setShowPwd(!showPwd)}>{showPwd ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+            <div className="form-group">
+              <label className="form-label">
+                {formMode === 'edit' ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+              </label>
+              <input 
+                type="password" 
+                className="form-input" 
+                name="password" 
+                value={formData.password} 
+                onChange={handleChange} 
+                readOnly={isReadOnly} 
+                required={formMode === 'new'} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Perfil de Acesso</label>
+              <select className="form-select" name="role" value={formData.role} onChange={handleChange} disabled={isReadOnly} required>
+                {Object.entries(roles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Status do Usuário</label>
+              <select className="form-select" name="status" value={formData.status} onChange={handleChange} disabled={isReadOnly} required>
+                <option value="Ativo">Ativo (Pode Acessar)</option>
+                <option value="Inativo">Inativo (Acesso Bloqueado)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Vincular Técnico de Campo</label>
+              <select className="form-select" name="tecnicoId" value={formData.tecnicoId || ''} onChange={handleChange} disabled={isReadOnly}>
+                <option value="">Nenhum - Usuário de Escritório/Gestão</option>
+                {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </select>
             </div>
           </div>
-          <div className="form-group col-span-2">
-            <label className="form-label">Confirmar Senha</label>
-            <input className="form-input" type={showPwd ? 'text' : 'password'} value={changePwd.confirm} onChange={e => setChangePwd({ ...changePwd, confirm: e.target.value })} />
-          </div>
-          <div className="form-group col-span-4 flex-end"><button type="submit" className="btn btn-secondary"><Save size={16} /> Salvar Nova Senha</button></div>
+
+          {formMode !== 'view' && (
+            <div className="form-actions">
+              <button type="button" className="btn btn-secondary" onClick={() => { setFormMode('view'); if (users.length > 0) setFormData({ ...users[0], password: '' }); }}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary">
+                <Save size={16} /> Salvar Alterações
+              </button>
+            </div>
+          )}
         </form>
+      </SettingsSection>
+
+      {/* Tabela de Usuários Cadastrados */}
+      <SettingsSection title="Usuários Cadastrados">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <p className="tab-desc" style={{ margin: 0 }}>Nenhum usuário pode ser excluído por motivos de segurança e auditoria (Logs de Usuário), use a inativação.</p>
+          <div className="search-box table-search" style={{ margin: 0, maxWidth: '280px' }}>
+            <Search size={16} />
+            <input 
+              type="text" 
+              placeholder="Buscar usuário..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+          </div>
+        </div>
+
+        <div className="table-container" style={{ minHeight: '200px' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Usuário / E-mail</th>
+                <th>Nome Completo</th>
+                <th>Perfil</th>
+                <th>Técnico Vinculado</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center text-muted">Nenhum usuário encontrado.</td>
+                </tr>
+              ) : (
+                filteredUsers.map(u => {
+                  const tec = tecnicos.find(t => t.id === u.tecnicoId);
+                  return (
+                    <tr 
+                      key={u.id} 
+                      onClick={() => handleRowClick(u)}
+                      className={`${formData.id === u.id ? 'selected-row' : ''} ${u.id === currentUser?.id ? 'my-row' : ''}`}
+                    >
+                      <td className="font-mono">
+                        {u.username} {u.id === currentUser?.id && <strong style={{ color: 'var(--accent-primary)', marginLeft: '4px' }}>(Você)</strong>}
+                      </td>
+                      <td>{u.name}</td>
+                      <td>
+                        <span className={`badge ${u.role === 'admin' ? 'Concluída' : 'info'}`}>
+                          {roles[u.role] || u.role}
+                        </span>
+                      </td>
+                      <td>{tec ? tec.nome : <span className="text-muted">—</span>}</td>
+                      <td>
+                        <span className={`badge ${u.status !== 'Inativo' ? 'success' : 'danger'}`}>
+                          {u.status || 'Ativo'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </SettingsSection>
     </div>
   );

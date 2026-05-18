@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
       password: 'Admin',
       name: 'Gestor Principal',
       role: 'admin',
+      status: 'Ativo',
       permissions: ['all']
     }
   ];
@@ -44,6 +45,32 @@ export function AuthProvider({ children }) {
   const [users, setUsers] = useState(loadUsers);
   const [currentUser, setCurrentUser] = useState(loadSession);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+
+  // Sincroniza todos os perfis de usuários se for Supabase
+  const carregarPerfisSupabase = async () => {
+    if (!isSupabaseConfigured || !currentUser) return;
+    try {
+      const { data, error } = await supabase.from('perfis').select('*');
+      if (!error && data) {
+        const mappedUsers = data.map(p => ({
+          id: p.id,
+          username: p.email,
+          name: p.nome,
+          role: p.role,
+          tecnicoId: p.tecnico_id,
+          status: p.status || 'Ativo',
+          createdAt: p.created_at
+        }));
+        setUsers(mappedUsers);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar perfis de usuários:", e);
+    }
+  };
+
+  useEffect(() => {
+    carregarPerfisSupabase();
+  }, [currentUser]);
 
   // 1. Escuta e Sincroniza a Sessão de Autenticação com o Supabase (se configurado)
   useEffect(() => {
@@ -151,6 +178,11 @@ export function AuthProvider({ children }) {
           return { success: true };
         }
 
+        if (perfil.status === 'Inativo') {
+          await supabase.auth.signOut();
+          return { success: false, message: 'Este usuário foi inativado e não tem permissão para acessar o sistema.' };
+        }
+
         const sessionUser = {
           id: perfil.id,
           username: perfil.email,
@@ -171,6 +203,9 @@ export function AuthProvider({ children }) {
         u => u.username.toLowerCase() === username.toLowerCase() && u.password === password
       );
       if (user) {
+        if (user.status === 'Inativo') {
+          return { success: false, message: 'Este usuário foi inativado e não tem permissão para acessar o sistema.' };
+        }
         const { password: _, ...sessionUser } = user;
         setCurrentUser(sessionUser);
         return { success: true };
@@ -187,32 +222,118 @@ export function AuthProvider({ children }) {
     setCurrentUser(null);
   };
 
+  // ── AUDITORIA DE LOGS DE USUÁRIO ──────────────────────────────
+  const registrarLogUsuario = async (acao, detalhes) => {
+    const email = currentUser?.username || 'Sistema/Desconectado';
+    const entry = {
+      usuario_email: email,
+      acao,
+      detalhes
+    };
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('logs_usuario').insert(entry);
+        if (error) console.error("Erro ao salvar log no Supabase:", error);
+      } catch (e) {
+        console.error("Erro ao salvar log no Supabase:", e);
+      }
+    } else {
+      // Local storage fallback for logs
+      try {
+        const currentLogs = JSON.parse(localStorage.getItem('pmoc_user_logs') || '[]');
+        const newLog = {
+          id: `LOG-${Date.now()}`,
+          ...entry,
+          created_at: new Date().toISOString()
+        };
+        localStorage.setItem('pmoc_user_logs', JSON.stringify([newLog, ...currentLogs]));
+      } catch (e) {
+        console.error("Erro ao salvar log local:", e);
+      }
+    }
+  };
+
   // 5. Atualização de Senha
   const updatePassword = async (userId, newPassword) => {
     if (isSupabaseConfigured) {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (!error) {
+        await registrarLogUsuario('Alteração de Senha', `Alterou a própria senha.`);
+      }
       return { success: !error, message: error?.message };
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, password: newPassword } : u));
+      await registrarLogUsuario('Alteração de Senha', `Senha do usuário ID ${userId} atualizada.`);
       return { success: true };
     }
   };
 
   // 6. Adicionar Novo Usuário
   const addUser = async (userData) => {
+    const defaultData = {
+      status: 'Ativo',
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    const finalData = { ...defaultData, ...userData };
+
     if (isSupabaseConfigured) {
-      console.log('Adição de usuários em nuvem é gerenciada via painel do Supabase / schema SQL');
+      const randomUuid = crypto.randomUUID ? crypto.randomUUID() : `usr-${Math.random().toString(36).substr(2, 9)}`;
+      const { error } = await supabase.from('perfis').insert({
+        id: randomUuid,
+        nome: finalData.name,
+        email: finalData.username,
+        role: finalData.role,
+        status: finalData.status,
+        tecnico_id: finalData.tecnicoId || null
+      });
+
+      if (error) {
+        console.error('Erro ao adicionar perfil no Supabase:', error);
+        return { success: false, message: error.message };
+      }
+
+      await registrarLogUsuario('Cadastro de Usuário', `Cadastrou o usuário ${finalData.username} (${finalData.name})`);
+      await carregarPerfisSupabase();
+      return { success: true };
     } else {
       const newUser = {
-        ...userData,
+        ...finalData,
         id: `USR${String(users.length + 1).padStart(3, '0')}`
       };
       setUsers(prev => [...prev, newUser]);
+      await registrarLogUsuario('Cadastro de Usuário', `Cadastrou o usuário ${newUser.username} (${newUser.name})`);
+      return { success: true };
+    }
+  };
+
+  // 7. Salvar/Atualizar Usuário Existente
+  const saveUser = async (id, userData) => {
+    if (isSupabaseConfigured) {
+      const payload = {
+        nome: userData.name,
+        role: userData.role,
+        status: userData.status || 'Ativo',
+        tecnico_id: userData.tecnicoId || null
+      };
+
+      const { error } = await supabase.from('perfis').update(payload).eq('id', id);
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      await registrarLogUsuario('Edição de Usuário', `Atualizou dados do usuário ${userData.username || id}. Ações: ${JSON.stringify(payload)}`);
+      await carregarPerfisSupabase();
+      return { success: true };
+    } else {
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...userData } : u));
+      await registrarLogUsuario('Edição de Usuário', `Atualizou dados do usuário ${userData.username} (ID: ${id})`);
+      return { success: true };
     }
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, users, updatePassword, addUser, loading }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, users, updatePassword, addUser, saveUser, registrarLogUsuario, loading }}>
       {children}
     </AuthContext.Provider>
   );

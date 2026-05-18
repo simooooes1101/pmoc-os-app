@@ -17,7 +17,8 @@ export function Tecnicos() {
     telefone: '',
     email: '',
     especialidade: '',
-    status: 'Ativo'
+    status: 'Ativo',
+    pin: '1234'
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -139,6 +140,23 @@ export function Tecnicos() {
               <input type="text" className="form-input" name="especialidade" value={formData.especialidade} onChange={handleChange} readOnly={isReadOnly} placeholder="Ex: Climatização, Eletromecânica" required />
             </div>
             <div className="form-group">
+              <label>PIN de Acesso (4 dígitos)</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                name="pin" 
+                value={formData.pin || '1234'} 
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').substring(0, 4);
+                  setFormData(prev => ({ ...prev, pin: val }));
+                }} 
+                readOnly={isReadOnly} 
+                maxLength={4}
+                placeholder="1234"
+                required 
+              />
+            </div>
+            <div className="form-group col-span-2">
               <label>Status Operacional</label>
               <select className="form-select" name="status" value={formData.status} onChange={handleChange} disabled={isReadOnly} required>
                 <option value="Ativo">Ativo</option>
