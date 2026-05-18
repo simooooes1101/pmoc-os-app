@@ -279,7 +279,7 @@ export function AuthProvider({ children }) {
 
     if (isSupabaseConfigured) {
       const randomUuid = crypto.randomUUID ? crypto.randomUUID() : `usr-${Math.random().toString(36).substr(2, 9)}`;
-      const { error } = await supabase.from('perfis').insert({
+      let { error } = await supabase.from('perfis').insert({
         id: randomUuid,
         nome: finalData.name,
         email: finalData.username,
@@ -287,6 +287,19 @@ export function AuthProvider({ children }) {
         status: finalData.status,
         tecnico_id: finalData.tecnicoId || null
       });
+
+      // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
+      if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
+        console.warn('Coluna status de perfis não encontrada. Tentando inserção sem status...');
+        const retry = await supabase.from('perfis').insert({
+          id: randomUuid,
+          nome: finalData.name,
+          email: finalData.username,
+          role: finalData.role,
+          tecnico_id: finalData.tecnicoId || null
+        });
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Erro ao adicionar perfil no Supabase:', error);
@@ -317,12 +330,25 @@ export function AuthProvider({ children }) {
         tecnico_id: userData.tecnicoId || null
       };
 
-      const { error } = await supabase.from('perfis').update(payload).eq('id', id);
+      let { error } = await supabase.from('perfis').update(payload).eq('id', id);
+      
+      // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
+      if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
+        console.warn('Coluna status de perfis não encontrada. Tentando atualização sem status...');
+        const fallbackPayload = {
+          nome: userData.name,
+          role: userData.role,
+          tecnico_id: userData.tecnicoId || null
+        };
+        const retry = await supabase.from('perfis').update(fallbackPayload).eq('id', id);
+        error = retry.error;
+      }
+
       if (error) {
         return { success: false, message: error.message };
       }
 
-      await registrarLogUsuario('Edição de Usuário', `Atualizou dados do usuário ${userData.username || id}. Ações: ${JSON.stringify(payload)}`);
+      await registrarLogUsuario('Edição de Usuário', `Atualizou dados do usuário ${userData.username || id}.`);
       await carregarPerfisSupabase();
       return { success: true };
     } else {
