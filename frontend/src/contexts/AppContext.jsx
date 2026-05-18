@@ -82,6 +82,8 @@ const mapToFrontend = (obj, mapping) => {
 const mapToBackend = (obj, mapping) => {
   if (!obj) return obj;
   const newObj = { ...obj };
+  
+  // 1. Mapeia chaves do frontend para o backend (camelCase -> snake_case)
   Object.keys(mapping).forEach(pgKey => {
     const jsKey = mapping[pgKey];
     if (jsKey in newObj) {
@@ -89,6 +91,15 @@ const mapToBackend = (obj, mapping) => {
       delete newObj[jsKey];
     }
   });
+
+  // 2. Converte qualquer string vazia ("") para NULL antes de enviar para o PostgreSQL
+  // Isso evita violações de chave estrangeira (FK), datas inválidas e erros de tipo numérico.
+  Object.keys(newObj).forEach(key => {
+    if (newObj[key] === '') {
+      newObj[key] = null;
+    }
+  });
+
   return newObj;
 };
 
