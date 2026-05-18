@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import { useAuth } from './AuthContext';
 import {
   mockClientes,
   mockTecnicos,
@@ -91,6 +92,8 @@ const mapToBackend = (obj, mapping) => {
 };
 
 export function AppProvider({ children }) {
+  const { currentUser } = useAuth();
+  
   // Helper para carregar dados locais se não houver Supabase
   const loadState = (key, fallback) => {
     try {
@@ -154,6 +157,17 @@ export function AppProvider({ children }) {
       return;
     }
 
+    if (!currentUser) {
+      // Limpa dados locais se deslogado
+      setClientes([]);
+      setTecnicos([]);
+      setEquipamentos([]);
+      setOrdens([]);
+      setPmocs([]);
+      return;
+    }
+
+    // Carrega dados da nuvem
     carregarDadosSupabase();
 
     // Sincronização em tempo real via Websockets do Supabase
@@ -170,7 +184,7 @@ export function AppProvider({ children }) {
     return () => {
       canal.unsubscribe();
     };
-  }, []);
+  }, [currentUser]);
 
   // 3. PERSISTÊNCIA EM LOCALSTORAGE APENAS NO MODO LOCAL (Para evitar redundância)
   useEffect(() => {

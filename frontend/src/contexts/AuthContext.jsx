@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
       if (session) {
         getProfile(session.user.id);
       } else {
+        setCurrentUser(null);
         setLoading(false);
       }
     });
