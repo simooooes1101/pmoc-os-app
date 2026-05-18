@@ -309,6 +309,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao criar OS: ${error.message}`, 'error');
         return null;
       }
+      setOrdens((prev) => [os, ...prev]);
     } else {
       setOrdens((prev) => [os, ...prev]);
     }
@@ -329,17 +330,29 @@ export function AppProvider({ children }) {
       // Busca OS para herdar o histórico
       const { data: osRaw } = await supabase.from('ordens_servico').select('historico').eq('id', osId).single();
       const historicoAtual = osRaw?.historico || [];
+      const novoHistorico = [...historicoAtual, entry];
       
       const { error } = await supabase.from('ordens_servico').update({
         status: novoStatus,
         data_conclusao: dataConclusao,
-        historico: [...historicoAtual, entry]
+        historico: novoHistorico
       }).eq('id', osId);
 
       if (error) {
         showNotification(`Erro ao atualizar status: ${error.message}`, 'error');
         return;
       }
+      setOrdens((prev) =>
+        prev.map((os) => {
+          if (os.id !== osId) return os;
+          return {
+            ...os,
+            status: novoStatus,
+            dataConclusao: novoStatus === 'Concluída' ? new Date().toISOString() : os.dataConclusao,
+            historico: novoHistorico,
+          };
+        })
+      );
     } else {
       setOrdens((prev) =>
         prev.map((os) => {
@@ -367,17 +380,28 @@ export function AppProvider({ children }) {
     if (isSupabaseConfigured) {
       const { data: osRaw } = await supabase.from('ordens_servico').select('historico').eq('id', osId).single();
       const historicoAtual = osRaw?.historico || [];
+      const novoHistorico = [...historicoAtual, entry];
 
       const dadosBack = mapToBackend(dados, OS_MAP);
       const { error } = await supabase.from('ordens_servico').update({
         ...dadosBack,
-        historico: [...historicoAtual, entry]
+        historico: novoHistorico
       }).eq('id', osId);
 
       if (error) {
         showNotification(`Erro ao editar OS: ${error.message}`, 'error');
         return;
       }
+      setOrdens((prev) =>
+        prev.map((os) => {
+          if (os.id !== osId) return os;
+          return {
+            ...os,
+            ...dados,
+            historico: novoHistorico,
+          };
+        })
+      );
     } else {
       setOrdens((prev) =>
         prev.map((os) => {
@@ -405,16 +429,27 @@ export function AppProvider({ children }) {
     if (isSupabaseConfigured) {
       const { data: osRaw } = await supabase.from('ordens_servico').select('historico').eq('id', osId).single();
       const historicoAtual = osRaw?.historico || [];
+      const novoHistorico = [...historicoAtual, entry];
 
       const { error } = await supabase.from('ordens_servico').update({
         tecnico_id: tecnicoId,
-        historico: [...historicoAtual, entry]
+        historico: novoHistorico
       }).eq('id', osId);
 
       if (error) {
         showNotification(`Erro ao atribuir técnico: ${error.message}`, 'error');
         return;
       }
+      setOrdens((prev) =>
+        prev.map((os) => {
+          if (os.id !== osId) return os;
+          return {
+            ...os,
+            tecnicoId,
+            historico: novoHistorico,
+          };
+        })
+      );
     } else {
       setOrdens((prev) =>
         prev.map((os) => {
@@ -433,9 +468,10 @@ export function AppProvider({ children }) {
 
   // ── OPERAÇÕES DE CLIENTES ──────────────────────────────────────
   const criarCliente = useCallback(async (dados) => {
+    const nextId = `CLI${String(clientes.length + 1).padStart(3, '0')}`;
     const cliente = {
       ...dados,
-      id: `CLI${String(clientes.length + 1).padStart(3, '0')}`,
+      id: dados.id || nextId,
       pmocAtivo: false,
       createdAt: new Date().toISOString().split('T')[0],
     };
@@ -446,6 +482,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao criar cliente: ${error.message}`, 'error');
         return null;
       }
+      setClientes((prev) => [...prev, cliente]);
     } else {
       setClientes((prev) => [...prev, cliente]);
     }
@@ -461,6 +498,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao atualizar: ${error.message}`, 'error');
         return;
       }
+      setClientes((prev) => prev.map((c) => (c.id === id ? { ...c, ...dados } : c)));
     } else {
       setClientes((prev) => prev.map((c) => (c.id === id ? { ...c, ...dados } : c)));
     }
@@ -474,6 +512,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao excluir: ${error.message}`, 'error');
         return;
       }
+      setClientes((prev) => prev.filter((c) => c.id !== id));
     } else {
       setClientes((prev) => prev.filter((c) => c.id !== id));
     }
@@ -496,6 +535,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao criar equipamento: ${error.message}`, 'error');
         return null;
       }
+      setEquipamentos((prev) => [...prev, eq]);
     } else {
       setEquipamentos((prev) => [...prev, eq]);
     }
@@ -511,6 +551,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao atualizar: ${error.message}`, 'error');
         return;
       }
+      setEquipamentos((prev) => prev.map((eq) => (eq.id === id ? { ...eq, ...dados } : eq)));
     } else {
       setEquipamentos((prev) => prev.map((eq) => (eq.id === id ? { ...eq, ...dados } : eq)));
     }
@@ -524,6 +565,7 @@ export function AppProvider({ children }) {
         showNotification(`Erro ao excluir: ${error.message}`, 'error');
         return;
       }
+      setEquipamentos((prev) => prev.filter((eq) => eq.id !== id));
     } else {
       setEquipamentos((prev) => prev.filter((eq) => eq.id !== id));
     }
@@ -558,6 +600,9 @@ export function AppProvider({ children }) {
             .update({ agendamentos: agendamentosAtualizados })
             .eq('id', pmoc.id);
 
+          setPmocs((prev) =>
+            prev.map((p) => (p.id === pmoc.id ? { ...p, agendamentos: agendamentosAtualizados } : p))
+          );
           showNotification('Nova data incluída no PMOC existente!', 'success');
         } else {
           const dataVigencia = new Date(dados.dataInicio);
@@ -586,6 +631,8 @@ export function AppProvider({ children }) {
           await supabase.from('pmocs').insert(mapToBackend(novoPMOC, PMOC_MAP));
           await supabase.from('clientes').update({ pmoc_ativo: true }).eq('id', dados.clienteId);
           
+          setPmocs((prev) => [novoPMOC, ...prev]);
+          setClientes((cliPrev) => cliPrev.map((c) => (c.id === dados.clienteId ? { ...c, pmocAtivo: true } : c)));
           showNotification('Novo PMOC criado com sucesso!', 'success');
         }
       } catch (err) {

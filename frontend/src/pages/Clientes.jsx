@@ -57,16 +57,21 @@ export function Clientes() {
     }
   };
 
-  const handleSalvar = (e) => {
+  const handleSalvar = async (e) => {
     e.preventDefault();
-    if (formMode === 'new') {
-      const novoId = `CLI${String(clientes.length + 1).padStart(3, '0')}`;
-      criarCliente({ ...formData, id: novoId });
-      setFormData({ ...formData, id: novoId });
-    } else if (formMode === 'edit') {
-      atualizarCliente(formData.id, formData);
+    try {
+      if (formMode === 'new') {
+        const novoId = `CLI${String(clientes.length + 1).padStart(3, '0')}`;
+        const finalData = { ...formData, id: novoId };
+        await criarCliente(finalData);
+        setFormData(finalData);
+      } else if (formMode === 'edit') {
+        await atualizarCliente(formData.id, formData);
+      }
+      setFormMode('view');
+    } catch (err) {
+      console.error("Erro ao salvar cliente:", err);
     }
-    setFormMode('view');
   };
 
   const handleChange = (e) => {
