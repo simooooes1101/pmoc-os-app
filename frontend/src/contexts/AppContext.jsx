@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { useTechAuth } from './TechAuthContext';
 import {
   mockClientes,
   mockTecnicos,
@@ -93,6 +94,7 @@ const mapToBackend = (obj, mapping) => {
 
 export function AppProvider({ children }) {
   const { currentUser } = useAuth();
+  const { techSession } = useTechAuth();
   
   // Helper para carregar dados locais se não houver Supabase
   const loadState = (key, fallback) => {
@@ -122,22 +124,27 @@ export function AppProvider({ children }) {
     if (!isSupabaseConfigured) return;
     try {
       setLoadingDb(true);
-      const [resCli, resTec, resEq, resOs, resPmoc, resRt] = await Promise.all([
-        supabase.from('clientes').select('*'),
-        supabase.from('tecnicos').select('*'),
-        supabase.from('equipamentos').select('*'),
-        supabase.from('ordens_servico').select('*'),
-        supabase.from('pmocs').select('*'),
-        supabase.from('responsavel_tecnico').select('*').limit(1)
-      ]);
-
-      if (resCli.data) setClientes(resCli.data.map(c => mapToFrontend(c, CLIENTE_MAP)));
+      
+      // Sempre busca os técnicos de forma pública (para a tela de login do técnico)
+      const resTec = await supabase.from('tecnicos').select('*');
       if (resTec.data) setTecnicos(resTec.data);
-      if (resEq.data) setEquipamentos(resEq.data.map(e => mapToFrontend(e, EQUIPAMENTO_MAP)));
-      if (resOs.data) setOrdens(resOs.data.map(o => mapToFrontend(o, OS_MAP)));
-      if (resPmoc.data) setPmocs(resPmoc.data.map(p => mapToFrontend(p, PMOC_MAP)));
-      if (resRt.data && resRt.data[0]) setResponsavelTecnico(resRt.data[0]);
 
+      // As outras tabelas exigem login de gestor ou técnico
+      if (currentUser || techSession) {
+        const [resCli, resEq, resOs, resPmoc, resRt] = await Promise.all([
+          supabase.from('clientes').select('*'),
+          supabase.from('equipamentos').select('*'),
+          supabase.from('ordens_servico').select('*'),
+          supabase.from('pmocs').select('*'),
+          supabase.from('responsavel_tecnico').select('*').limit(1)
+        ]);
+
+        if (resCli.data) setClientes(resCli.data.map(c => mapToFrontend(c, CLIENTE_MAP)));
+        if (resEq.data) setEquipamentos(resEq.data.map(e => mapToFrontend(e, EQUIPAMENTO_MAP)));
+        if (resOs.data) setOrdens(resOs.data.map(o => mapToFrontend(o, OS_MAP)));
+        if (resPmoc.data) setPmocs(resPmoc.data.map(p => mapToFrontend(p, PMOC_MAP)));
+        if (resRt.data && resRt.data[0]) setResponsavelTecnico(resRt.data[0]);
+      }
     } catch (err) {
       console.error("Erro ao sincronizar dados com o Supabase:", err);
     } finally {
@@ -157,18 +164,17 @@ export function AppProvider({ children }) {
       return;
     }
 
-    if (!currentUser) {
-      // Limpa dados locais se deslogado
+    // Sempre busca técnicos para o PIN pad de login
+    carregarDadosSupabase();
+
+    if (!currentUser && !techSession) {
+      // Limpa dados locais se totalmente deslogado
       setClientes([]);
-      setTecnicos([]);
       setEquipamentos([]);
       setOrdens([]);
       setPmocs([]);
       return;
     }
-
-    // Carrega dados da nuvem
-    carregarDadosSupabase();
 
     // Sincronização em tempo real via Websockets do Supabase
     const canal = supabase
@@ -184,7 +190,7 @@ export function AppProvider({ children }) {
     return () => {
       canal.unsubscribe();
     };
-  }, [currentUser]);
+  }, [currentUser, techSession]);
 
   // 3. PERSISTÊNCIA EM LOCALSTORAGE APENAS NO MODO LOCAL (Para evitar redundância)
   useEffect(() => {
