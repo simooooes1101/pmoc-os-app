@@ -279,14 +279,25 @@ export function AuthProvider({ children }) {
 
     if (isSupabaseConfigured) {
       const randomUuid = crypto.randomUUID ? crypto.randomUUID() : `usr-${Math.random().toString(36).substr(2, 9)}`;
-      let { error } = await supabase.from('perfis').insert({
+      let insertPayload = {
         id: randomUuid,
         nome: finalData.name,
         email: finalData.username,
         role: finalData.role,
         status: finalData.status,
         tecnico_id: finalData.tecnicoId || null
-      });
+      };
+
+      let { error } = await supabase.from('perfis').insert(insertPayload);
+
+      // Fallback caso a restrição check constraint do papel (perfis_role_check) falhe
+      if (error && error.message && error.message.includes('perfis_role_check')) {
+        console.warn('Restrição check de perfil detectada. Mapeando papel para compatibilidade com banco legado...');
+        const mappedRole = (finalData.role === 'admin' || finalData.role === 'manager') ? 'admin' : 'tecnico';
+        insertPayload.role = mappedRole;
+        const retry = await supabase.from('perfis').insert(insertPayload);
+        error = retry.error;
+      }
 
       // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
       if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
@@ -295,7 +306,7 @@ export function AuthProvider({ children }) {
           id: randomUuid,
           nome: finalData.name,
           email: finalData.username,
-          role: finalData.role,
+          role: insertPayload.role,
           tecnico_id: finalData.tecnicoId || null
         });
         error = retry.error;
@@ -323,7 +334,7 @@ export function AuthProvider({ children }) {
   // 7. Salvar/Atualizar Usuário Existente
   const saveUser = async (id, userData) => {
     if (isSupabaseConfigured) {
-      const payload = {
+      let payload = {
         nome: userData.name,
         role: userData.role,
         status: userData.status || 'Ativo',
@@ -332,12 +343,21 @@ export function AuthProvider({ children }) {
 
       let { error } = await supabase.from('perfis').update(payload).eq('id', id);
       
+      // Fallback caso a restrição check constraint do papel (perfis_role_check) falhe
+      if (error && error.message && error.message.includes('perfis_role_check')) {
+        console.warn('Restrição check de perfil detectada. Mapeando papel para compatibilidade com banco legado...');
+        const mappedRole = (userData.role === 'admin' || userData.role === 'manager') ? 'admin' : 'tecnico';
+        payload.role = mappedRole;
+        const retry = await supabase.from('perfis').update(payload).eq('id', id);
+        error = retry.error;
+      }
+
       // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
       if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
         console.warn('Coluna status de perfis não encontrada. Tentando atualização sem status...');
         const fallbackPayload = {
           nome: userData.name,
-          role: userData.role,
+          role: payload.role,
           tecnico_id: userData.tecnicoId || null
         };
         const retry = await supabase.from('perfis').update(fallbackPayload).eq('id', id);
