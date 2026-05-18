@@ -4,7 +4,7 @@ import { useApp } from '../../contexts/AppContext';
 import { useTechAuth } from '../../contexts/TechAuthContext';
 import { 
   ArrowLeft, CheckCircle2, Save, 
-  Camera, MessageSquare, AlertTriangle
+  Camera, MessageSquare, AlertTriangle, X
 } from 'lucide-react';
 import './TechChecklist.css';
 
@@ -18,6 +18,7 @@ export function TechChecklist() {
   
   const [items, setItems] = useState([]);
   const [observacoes, setObservacoes] = useState('');
+  const [fotos, setFotos] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function TechChecklist() {
         setItems(savedChecklist || []);
       }
       setObservacoes(os.observacoesTecnicas || '');
+      setFotos(os.fotos || []);
     }
   }, [os]);
 
@@ -72,6 +74,7 @@ export function TechChecklist() {
         dataConclusao: now,
         checklist: items,
         observacoesTecnicas: observacoes,
+        fotos: fotos,
         historico: updatedHistory
       });
 
@@ -79,6 +82,23 @@ export function TechChecklist() {
       showNotification('Ordem de Serviço finalizada com sucesso!');
       navigate('/tech/dashboard');
     }, 1500);
+  };
+
+  const handleAddPhotoClick = () => {
+    document.getElementById('tech-camera-input').click();
+  };
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files || files.length === 0) return;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotos(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
@@ -136,10 +156,36 @@ export function TechChecklist() {
         </section>
 
         <section className="tech-photo-section">
-          <button className="btn btn-secondary tech-photo-btn">
+          <input 
+            type="file" 
+            accept="image/*" 
+            multiple 
+            style={{ display: 'none' }} 
+            id="tech-camera-input" 
+            onChange={handleFileChange} 
+          />
+          <button type="button" className="btn btn-secondary tech-photo-btn" onClick={handleAddPhotoClick}>
             <Camera size={20} /> Adicionar Fotos da OS
           </button>
           <p className="photo-hint">Mínimo de 2 fotos recomendado</p>
+
+          {/* Grid de miniaturas das fotos */}
+          {fotos.length > 0 && (
+            <div className="tech-photo-grid animate-fade-in">
+              {fotos.map((foto, idx) => (
+                <div key={idx} className="tech-photo-thumb">
+                  <img src={foto} alt={`Preview ${idx + 1}`} />
+                  <button 
+                    type="button" 
+                    className="tech-photo-remove" 
+                    onClick={(e) => { e.stopPropagation(); setFotos(prev => prev.filter((_, i) => i !== idx)); }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
