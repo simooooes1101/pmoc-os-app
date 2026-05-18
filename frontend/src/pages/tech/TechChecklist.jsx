@@ -24,8 +24,10 @@ export function TechChecklist() {
   useEffect(() => {
     if (os) {
       const savedChecklist = os.checklist;
-      // Safety: convert old object format to array if found, or use provided array
-      if (savedChecklist && !Array.isArray(savedChecklist)) {
+      if (savedChecklist && Array.isArray(savedChecklist) && savedChecklist.length > 0) {
+        setItems(savedChecklist);
+      } else if (savedChecklist && !Array.isArray(savedChecklist) && Object.keys(savedChecklist).length > 0) {
+        // Safety: convert old object format to array if found
         const converted = Object.entries(savedChecklist).map(([key, val], idx) => ({
           id: String(idx + 1),
           item: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
@@ -34,9 +36,18 @@ export function TechChecklist() {
         }));
         setItems(converted);
       } else {
-        setItems(savedChecklist || []);
+        // Inicializa com checklist padrão excelente do PMOC
+        const defaultChecklist = [
+          { id: '1', item: 'Limpeza e higienização dos filtros de ar', concluido: false, obrigatorio: true },
+          { id: '2', item: 'Inspeção e limpeza da bandeja de condensado', concluido: false, obrigatorio: true },
+          { id: '3', item: 'Verificação do dreno e desobstrução se necessário', concluido: false, obrigatorio: true },
+          { id: '4', item: 'Inspeção visual e higienização da serpentina', concluido: false, obrigatorio: false },
+          { id: '5', item: 'Verificação e reaperto das conexões elétricas', concluido: false, obrigatorio: true },
+          { id: '6', item: 'Medição da corrente elétrica e carga de gás', concluido: false, obrigatorio: false }
+        ];
+        setItems(defaultChecklist);
       }
-      setObservacoes(os.observacoesTecnicas || '');
+      setObservacoes(os.observacoes || os.observacoesTecnicas || '');
       setFotos(os.fotos || []);
     }
   }, [os]);
@@ -73,6 +84,7 @@ export function TechChecklist() {
         status: 'Concluída',
         dataConclusao: now,
         checklist: items,
+        observacoes: observacoes,
         observacoesTecnicas: observacoes,
         fotos: fotos,
         historico: updatedHistory

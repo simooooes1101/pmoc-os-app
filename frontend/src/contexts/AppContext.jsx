@@ -320,11 +320,22 @@ export function AppProvider({ children }) {
 
   // ── OPERAÇÕES DE ORDENS DE SERVIÇO (OS) ────────────────────────
   const criarOS = useCallback(async (novaOS) => {
+    const defaultChecklist = [
+      { id: '1', item: 'Limpeza e higienização dos filtros de ar', concluido: false, obrigatorio: true },
+      { id: '2', item: 'Inspeção e limpeza da bandeja de condensado', concluido: false, obrigatorio: true },
+      { id: '3', item: 'Verificação do dreno e desobstrução se necessário', concluido: false, obrigatorio: true },
+      { id: '4', item: 'Inspeção visual e higienização da serpentina', concluido: false, obrigatorio: false },
+      { id: '5', item: 'Verificação e reaperto das conexões elétricas', concluido: false, obrigatorio: true },
+      { id: '6', item: 'Medição da corrente elétrica e carga de gás', concluido: false, obrigatorio: false }
+    ];
+
     const os = {
       ...novaOS,
       id: `OS-2025-${String(Math.floor(Math.random() * 9000) + 1000)}`,
       dataAbertura: new Date().toISOString(),
       status: 'Aguardando',
+      checklist: defaultChecklist,
+      fotos: [],
       historico: [
         {
           data: new Date().toISOString(),
