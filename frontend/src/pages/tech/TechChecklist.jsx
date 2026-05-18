@@ -85,7 +85,6 @@ export function TechChecklist() {
         dataConclusao: now,
         checklist: items,
         observacoes: observacoes,
-        observacoesTecnicas: observacoes,
         fotos: fotos,
         historico: updatedHistory
       });

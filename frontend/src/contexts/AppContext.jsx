@@ -413,16 +413,20 @@ export function AppProvider({ children }) {
   }, [showNotification]);
 
   const atualizarOS = useCallback(async (osId, dados) => {
-    const entry = {
-      data: new Date().toISOString(),
-      acao: 'OS Editada',
-      usuario: 'Gestor Admin',
-    };
-
     if (isSupabaseConfigured) {
-      const { data: osRaw } = await supabase.from('ordens_servico').select('historico').eq('id', osId).single();
-      const historicoAtual = osRaw?.historico || [];
-      const novoHistorico = [...historicoAtual, entry];
+      let novoHistorico;
+      if (dados.historico) {
+        novoHistorico = dados.historico;
+      } else {
+        const entry = {
+          data: new Date().toISOString(),
+          acao: 'OS Editada',
+          usuario: 'Gestor Admin',
+        };
+        const { data: osRaw } = await supabase.from('ordens_servico').select('historico').eq('id', osId).single();
+        const historicoAtual = osRaw?.historico || [];
+        novoHistorico = [...historicoAtual, entry];
+      }
 
       const dadosBack = mapToBackend(dados, OS_MAP);
       const { error } = await supabase.from('ordens_servico').update({
