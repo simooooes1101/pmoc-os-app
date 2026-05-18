@@ -11,7 +11,7 @@ export function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -21,11 +21,15 @@ export function Login() {
       return;
     }
 
-    const result = login(username, password);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.message);
+    try {
+      const result = await login(username, password);
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError('Erro ao autenticar. Tente novamente.');
     }
   };
 
