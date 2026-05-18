@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 
 const AuthContext = createContext();
 
@@ -278,48 +279,85 @@ export function AuthProvider({ children }) {
     const finalData = { ...defaultData, ...userData };
 
     if (isSupabaseConfigured) {
-      const randomUuid = crypto.randomUUID ? crypto.randomUUID() : `usr-${Math.random().toString(36).substr(2, 9)}`;
-      let insertPayload = {
-        id: randomUuid,
-        nome: finalData.name,
-        email: finalData.username,
-        role: finalData.role,
-        status: finalData.status,
-        tecnico_id: finalData.tecnicoId || null
-      };
+      try {
+        // Cria um cliente temporário sem persistência de sessão para não deslogar o gestor atual!
+        const tempSupabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false
+            }
+          }
+        );
 
-      let { error } = await supabase.from('perfis').insert(insertPayload);
-
-      // Fallback caso a restrição check constraint do papel (perfis_role_check) falhe
-      if (error && error.message && error.message.includes('perfis_role_check')) {
-        console.warn('Restrição check de perfil detectada. Mapeando papel para compatibilidade com banco legado...');
-        const mappedRole = (finalData.role === 'admin' || finalData.role === 'manager') ? 'admin' : 'tecnico';
-        insertPayload.role = mappedRole;
-        const retry = await supabase.from('perfis').insert(insertPayload);
-        error = retry.error;
-      }
-
-      // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
-      if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
-        console.warn('Coluna status de perfis não encontrada. Tentando inserção sem status...');
-        const retry = await supabase.from('perfis').insert({
-          id: randomUuid,
-          nome: finalData.name,
-          email: finalData.username,
-          role: insertPayload.role,
-          tecnico_id: finalData.tecnicoId || null
+        // Registra as credenciais do usuário diretamente no Supabase Auth
+        const email = finalData.username.includes('@') ? finalData.username : `${finalData.username.toLowerCase()}@climatiza.com.br`;
+        const { data: authData, error: signUpError } = await tempSupabase.auth.signUp({
+          email,
+          password: finalData.password,
+          options: {
+            data: {
+              nome: finalData.name,
+              role: finalData.role
+            }
+          }
         });
-        error = retry.error;
-      }
 
-      if (error) {
-        console.error('Erro ao adicionar perfil no Supabase:', error);
-        return { success: false, message: error.message };
-      }
+        if (signUpError) {
+          console.error('Erro ao registrar credenciais no Supabase Auth:', signUpError);
+          return { success: false, message: signUpError.message };
+        }
 
-      await registrarLogUsuario('Cadastro de Usuário', `Cadastrou o usuário ${finalData.username} (${finalData.name})`);
-      await carregarPerfisSupabase();
-      return { success: true };
+        if (authData?.user) {
+          let insertPayload = {
+            id: authData.user.id,
+            nome: finalData.name,
+            email: authData.user.email,
+            role: finalData.role,
+            status: finalData.status,
+            tecnico_id: finalData.tecnicoId || null
+          };
+
+          let { error } = await supabase.from('perfis').insert(insertPayload);
+
+          // Fallback caso a restrição check constraint do papel (perfis_role_check) falhe
+          if (error && error.message && error.message.includes('perfis_role_check')) {
+            console.warn('Restrição check de perfil detectada. Mapeando papel para compatibilidade com banco legado...');
+            const mappedRole = (finalData.role === 'admin' || finalData.role === 'manager') ? 'admin' : 'tecnico';
+            insertPayload.role = mappedRole;
+            const retry = await supabase.from('perfis').insert(insertPayload);
+            error = retry.error;
+          }
+
+          // Fallback robusto caso a coluna status ainda não tenha sido criada no banco
+          if (error && error.message && (error.message.includes('status') || error.message.includes('cache'))) {
+            console.warn('Coluna status de perfis não encontrada. Tentando inserção sem status...');
+            const retry = await supabase.from('perfis').insert({
+              id: authData.user.id,
+              nome: finalData.name,
+              email: authData.user.email,
+              role: insertPayload.role,
+              tecnico_id: finalData.tecnicoId || null
+            });
+            error = retry.error;
+          }
+
+          if (error) {
+            console.error('Erro ao salvar perfil público do novo usuário:', error);
+            return { success: false, message: error.message };
+          }
+        }
+
+        await registrarLogUsuario('Cadastro de Usuário', `Cadastrou o usuário ${finalData.username} (${finalData.name})`);
+        await carregarPerfisSupabase();
+        return { success: true };
+      } catch (err) {
+        console.error('Erro desconhecido ao cadastrar usuário:', err);
+        return { success: false, message: err.message || 'Erro inesperado ao cadastrar usuário' };
+      }
     } else {
       const newUser = {
         ...finalData,

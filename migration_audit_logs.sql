@@ -36,6 +36,10 @@ for insert with check (true);
 drop policy if exists "Perfis são legíveis por todos os autenticados" on public.perfis;
 drop policy if exists "Administradores podem gerenciar perfis" on public.perfis;
 drop policy if exists "Usuários podem atualizar seus próprios perfis" on public.perfis;
+drop policy if exists "Public Select Perfis" on public.perfis;
+drop policy if exists "Public Insert Perfis" on public.perfis;
+drop policy if exists "Public Update Perfis" on public.perfis;
+drop policy if exists "Public Delete Perfis" on public.perfis;
 
 create policy "Public Select Perfis" on public.perfis for select using (true);
 create policy "Public Insert Perfis" on public.perfis for insert with check (true);
