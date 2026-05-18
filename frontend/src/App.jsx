@@ -18,6 +18,7 @@ import { Login } from './pages/Login';
 import { TechLayout } from './pages/tech/TechLayout';
 import { TechLogin } from './pages/tech/TechLogin';
 import { TechDashboard } from './pages/tech/TechDashboard';
+import { TechOSList } from './pages/tech/TechOSList';
 import { TechOSDetail } from './pages/tech/TechOSDetail';
 import { TechChecklist } from './pages/tech/TechChecklist';
 
@@ -87,7 +88,7 @@ function App() {
                 }
               >
                 <Route path="dashboard" element={<TechDashboard />} />
-                <Route path="os" element={<Placeholder title="Minhas OS" />} />
+                <Route path="os" element={<TechOSList />} />
                 <Route path="os/:id" element={<TechOSDetail />} />
                 <Route path="os/:id/checklist" element={<TechChecklist />} />
               </Route>
